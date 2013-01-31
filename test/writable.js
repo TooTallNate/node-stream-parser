@@ -86,7 +86,6 @@ describe('Writable streams', function () {
   });
 
   it('should work when mixing in to a subclass\' `prototype`', function (done) {
-
     function MyWritable () {
       Writable.call(this);
       this._bytes(2, this.onbytes);
@@ -115,6 +114,61 @@ describe('Writable streams', function () {
     b.write(new Buffer([ 1 ]));
     a.end();
     b.end();
+  });
+
+  describe('FrameParser', function () {
+    function FrameParser () {
+      Writable.call(this);
+      this._bytes(1, this.onsize);
+    }
+    inherits(FrameParser, Writable);
+
+    // mixin to the `prototype`
+    Parser(FrameParser.prototype);
+
+    FrameParser.prototype.onsize = function (buf) {
+      var size = buf.readUInt8(0);
+      this._bytes(size, this.onframe);
+    };
+
+    FrameParser.prototype.onframe = function (buf) {
+      this.emit('frame', buf.toString());
+
+      // begin parsing the next "frame"
+      this._bytes(1, this.onsize);
+    };
+
+    it('should emit 1 "frame" event', function (done) {
+      var p = new FrameParser();
+      var s = 'a string';
+      p.on('frame', function (frame) {
+        assert.equal(s, frame);
+        done();
+      });
+      p.write(new Buffer([ s.length ]));
+      p.write(new Buffer(s));
+      p.end();
+
+    });
+
+    it('should emit 2 "frame" events', function (done) {
+      var p = new FrameParser();
+      var s = 'a string';
+      var s2 = 'done';
+      var count = 0;
+      p.on('frame', function (frame) {
+        count++;
+        if (s2 == frame) {
+          assert.equal(2, count);
+          done();
+        }
+      });
+      p.write(new Buffer([ s.length ]));
+      p.write(new Buffer(s));
+      p.write(new Buffer([ s2.length ]));
+      p.write(new Buffer(s2));
+      p.end();
+    });
 
   });
 
