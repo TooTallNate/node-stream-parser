@@ -13,6 +13,18 @@ describe('Writable streams', function () {
   var buf = new Buffer(4);
   buf.writeUInt32LE(val, 0);
 
+  it('should have the `_bytes()` function', function () {
+    var w = new Writable();
+    Parser(w);
+    assert.equal('function', typeof w._bytes);
+  });
+
+  it('should not have the `_passthrough()` function', function () {
+    var w = new Writable();
+    Parser(w);
+    assert.notEqual('function', typeof w._passthrough);
+  });
+
   it('should read 4 bytes in one chunk', function (done) {
     var w = new Writable();
     Parser(w);
@@ -42,6 +54,34 @@ describe('Writable streams', function () {
       w.write(new Buffer([ buf[i] ]));
     }
     w.end();
+  });
+
+  it('should read 1 byte, 2 bytes, then 3 bytes', function (done) {
+    var w = new Writable();
+    Parser(w);
+
+    // read 1 byte
+    w._bytes(1, readone);
+    function readone (chunk) {
+      assert.equal(1, chunk.length);
+      assert.equal(0, chunk[0]);
+      w._bytes(2, readtwo);
+    }
+    function readtwo (chunk) {
+      assert.equal(2, chunk.length);
+      assert.equal(0, chunk[0]);
+      assert.equal(1, chunk[1]);
+      w._bytes(3, readthree);
+    }
+    function readthree (chunk) {
+      assert.equal(3, chunk.length);
+      assert.equal(0, chunk[0]);
+      assert.equal(1, chunk[1]);
+      assert.equal(2, chunk[2]);
+      done();
+    }
+
+    w.end(new Buffer([ 0, 0, 1, 0, 1, 2 ]));
   });
 
 });
