@@ -1,7 +1,7 @@
 {
   "name": "stream-parser",
   "version": "0.0.0",
-  "description": "Generic \"parser\" mixin for Transform & Writable streams",
+  "description": "Generic interruptible \"parser\" mixin for Transform & Writable streams",
   "main": "lib/parser.js",
   "scripts": {
     "test": "mocha --reporter spec"
