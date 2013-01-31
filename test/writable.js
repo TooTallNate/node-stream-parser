@@ -3,8 +3,9 @@
  * Module dependencies.
  */
 
-var assert = require('assert');
 var Parser = require('../');
+var assert = require('assert');
+var inherits = require('util').inherits;
 var Writable = require('stream').Writable;
 
 describe('Writable streams', function () {
@@ -82,6 +83,39 @@ describe('Writable streams', function () {
     }
 
     w.end(new Buffer([ 0, 0, 1, 0, 1, 2 ]));
+  });
+
+  it('should work when mixing in to a subclass\' `prototype`', function (done) {
+
+    function MyWritable () {
+      Writable.call(this);
+      this._bytes(2, this.onbytes);
+    }
+    inherits(MyWritable, Writable);
+
+    // mixin to the `prototype`
+    Parser(MyWritable.prototype);
+
+    var count = 2;
+    MyWritable.prototype.onbytes = function (buf) {
+      assert.equal(2, buf.length);
+      assert.equal(0, buf[0]);
+      assert.equal(1, buf[1]);
+      --count;
+      if (!count) done();
+    };
+
+    var a = new MyWritable();
+    var b = new MyWritable();
+
+    // interleave write()s
+    a.write(new Buffer([ 0 ]));
+    b.write(new Buffer([ 0 ]));
+    a.write(new Buffer([ 1 ]));
+    b.write(new Buffer([ 1 ]));
+    a.end();
+    b.end();
+
   });
 
 });
