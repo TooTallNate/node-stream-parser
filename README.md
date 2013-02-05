@@ -35,13 +35,13 @@ var Transform = require('stream').Transform;
 function MyParser () {
   Transform.call(this);
 
-  // mixin stream-parser into this instance
-  Parser(this);
-
   // buffer the first 8 bytes written
   this._bytes(8, this.onheader);
 }
 inherits(MyParser, Transform);
+
+// mixin stream-parser into MyParser's `prototype`
+Parser(MyParser.prototype);
 
 // invoked when the first 8 bytes have been received
 MyParser.prototype.onheader = function (buffer, output) {
