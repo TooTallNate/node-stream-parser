@@ -59,9 +59,9 @@ MyParser.prototype.onheader = function (buffer, output) {
 // now we can *use* it!
 var parser = new MyParser();
 parser.on('header', function (header) {
-  console.log('got "header"', header);
+  console.error('got "header"', header);
 });
-process.stdin.pipe(parser);
+process.stdin.pipe(parser).pipe(process.stdout);
 ```
 
 See the `test` directory for some more example code in the test cases.
