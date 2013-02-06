@@ -16,6 +16,7 @@
     "debug": "~0.7.0"
   },
   "devDependencies": {
-    "mocha": "*"
+    "mocha": "*",
+    "readable-stream": "*"
   }
 }
