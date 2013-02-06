@@ -8,6 +8,9 @@ var assert = require('assert');
 var inherits = require('util').inherits;
 var Writable = require('stream').Writable;
 
+// for node v0.6.x-v0.8.x support
+if (!Writable) Writable = require('readable-stream/writable');
+
 describe('Writable streams', function () {
 
   var val = 1337;

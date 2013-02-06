@@ -7,6 +7,9 @@ var assert = require('assert');
 var Parser = require('../');
 var Transform = require('stream').Transform;
 
+// for node v0.6.x-v0.8.x support
+if (!Transform) Transform = require('readable-stream/transform');
+
 describe('Transform stream', function () {
 
   it('should have the `_bytes()` function', function () {
