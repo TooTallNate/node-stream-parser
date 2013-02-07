@@ -1,4 +1,3 @@
-
 /**
  * Module dependencies.
  */
@@ -53,8 +52,8 @@ describe('Transform stream', function () {
 
     t.on('end', function () {
       assert(gotBytes);
-      assert(gotBytes);
-      assert(gotBytes);
+      assert(gotPassthrough);
+      assert(gotData);
       done();
     });
 
