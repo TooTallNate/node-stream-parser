@@ -75,8 +75,8 @@ API
 ---
 
   - [Parser()](#parser)
-    - [._bytes()](#_bytes)
-    - [._passthrough()](#_passthrough)
+    - [._bytes(n, cb)](#_bytesn-cb)
+    - [._passthrough(n, cb)](#_passthroughn-cb)
 
 ## Parser()
 
