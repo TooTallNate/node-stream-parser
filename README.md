@@ -75,8 +75,8 @@ API
 ---
 
   - [Parser()](#parser)
-  - [_bytes()](#_bytes)
-  - [_passthrough()](#_passthrough)
+    - [._bytes()](#_bytes)
+    - [._passthrough()](#_passthrough)
 
 ## Parser()
 
@@ -95,11 +95,11 @@ _bytes(n, cb) - buffers "n" bytes and then calls "cb" with the "chunk"
 _passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
 ```
 
-### _bytes(n, cb)
+### ._bytes(n, cb)
 
   Buffers `n` bytes and then invokes `cb` once that amount has been collected.
 
-### _passthrough(n, cb)
+### ._passthrough(n, cb)
 
   Passes through `n` bytes to the readable side of this stream untouched,
   then invokes `cb` once that amount has been passed through.
