@@ -119,6 +119,23 @@ describe('Writable streams', function () {
     b.end();
   });
 
+  describe('async', function () {
+
+    it('should accept a callback function for `_bytes()`', function (done) {
+      var w = new Writable();
+      var data = 'test';
+      Parser(w);
+      w._bytes(data.length, function (chunk, fn) {
+        setTimeout(fn, 25);
+      });
+      w.on('finish', function () {
+        done();
+      });
+      w.end(data);
+    });
+
+  });
+
   describe('FrameParser', function () {
     function FrameParser () {
       Writable.call(this);

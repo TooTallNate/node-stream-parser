@@ -61,4 +61,42 @@ describe('Transform stream', function () {
     t.end(new Buffer([ 0, 1, 2, 3 ]));
   });
 
+  describe('async', function () {
+
+    it('should accept a callback function for `_passthrough()`', function (done) {
+      var t = new Transform();
+      var data = 'test', _data;
+      Parser(t);
+      t._passthrough(data.length, function (output, fn) {
+        setTimeout(fn, 25);
+      });
+
+      t.on('data', function (data) {
+        _data = data;
+      });
+      t.on('end', function () {
+        assert.equal(data, _data);
+        done();
+      });
+      t.end(data);
+      t.resume();
+    });
+
+    it('should accept a callback function for `_bytes()`', function (done) {
+      var t = new Transform();
+      var data = 'test';
+      Parser(t);
+      t._bytes(data.length, function (chunk, output, fn) {
+        setTimeout(fn, 25);
+      });
+
+      t.on('end', function () {
+        done();
+      });
+      t.end(data);
+      t.resume();
+    });
+
+  });
+
 });
