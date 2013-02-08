@@ -66,6 +66,10 @@ process.stdin.pipe(parser).pipe(process.stdout);
 
 See the `test` directory for some more example code in the test cases.
 
+A list of known concrete implementations is here (send pull requests for more!):
+
+ * [node-icecast][]
+ * [node-wav][]
 
 API
 ---
@@ -99,3 +103,6 @@ _passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
 
   Passes through `n` bytes to the readable side of this stream untouched,
   then invokes `cb` once that amount has been passed through.
+
+[node-icecast]: https://github.com/TooTallNate/node-icecast
+[node-wav]: https://github.com/TooTallNate/node-wav
