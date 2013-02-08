@@ -91,11 +91,11 @@ _bytes(n, cb) - buffers "n" bytes and then calls "cb" with the "chunk"
 _passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
 ```
 
-## _bytes()
+### _bytes(n, cb)
 
-  Buffers `n` bytes and then invokes `fn` once that amount has been collected.
+  Buffers `n` bytes and then invokes `cb` once that amount has been collected.
 
-## _passthrough()
+### _passthrough(n, cb)
 
   Passes through `n` bytes to the readable side of this stream untouched,
-  then invokes `fn` once that amount has been passed through.
+  then invokes `cb` once that amount has been passed through.
