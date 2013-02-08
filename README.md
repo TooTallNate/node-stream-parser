@@ -70,18 +70,32 @@ See the `test` directory for some more example code in the test cases.
 API
 ---
 
-### `Parser` mixin
+  - [Parser()](#parser)
+  - [_bytes()](#_bytes)
+  - [_passthrough()](#_passthrough)
 
-Invoke the `Parser` mixin on a `Writable` stream or `Transform` stream instance,
-and it will give you access to the `_bytes()` function (and `_passthrough()`
-fuction for transform streams).
+## Parser()
 
-#### _bytes(n, fn)
+  The `Parser` stream mixin works with either `Writable` or `Transform` stream
+  instances/subclasses. Provides a convenient generic "parsing" API:
 
-Buffers `n` bytes written to the stream before invoking the callback function.
+```js
+_bytes(n, cb) - buffers "n" bytes and then calls "cb" with the "chunk"
+```
 
-#### _passthrough(n, fn)
 
-Only extended `Transform` streams have the `_passthrough()` function. This
-function passes through `n` untouched bytes through the readable side of the
-transform stream.
+  If you extend a `Transform` stream, then the `_passthrough()` function is also
+  added:
+
+```js
+_passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
+```
+
+## _bytes()
+
+  Buffers `n` bytes and then invokes `fn` once that amount has been collected.
+
+## _passthrough()
+
+  Passes through `n` bytes to the readable side of this stream untouched,
+  then invokes `fn` once that amount has been passed through.
