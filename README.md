@@ -69,6 +69,7 @@ See the `test` directory for some more example code in the test cases.
 A list of known concrete implementations is here (send pull requests for more!):
 
  * [node-icecast][]
+ * [node-throttle][]
  * [node-wav][]
 
 API
@@ -105,4 +106,5 @@ _passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
   then invokes `cb` once that amount has been passed through.
 
 [node-icecast]: https://github.com/TooTallNate/node-icecast
+[node-throttle]: https://github.com/TooTallNate/node-throttle
 [node-wav]: https://github.com/TooTallNate/node-wav
