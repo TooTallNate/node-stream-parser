@@ -1,3 +1,9 @@
+0.0.3 / 2012-02-10
+==================
+
+ - Allow `_passthrough(Infinity)`
+ - Add MIT license file
+
 0.0.2 / 2012-02-08
 ==================
 
