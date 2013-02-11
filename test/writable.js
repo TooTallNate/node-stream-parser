@@ -119,6 +119,15 @@ describe('Writable streams', function () {
     b.end();
   });
 
+  it('should *not* allow you to buffer Infinity bytes', function () {
+    // buffering to Infinity would just be silly...
+    var w = new Writable();
+    Parser(w);
+    assert.throws(function () {
+      w._bytes(Infinity);
+    });
+  });
+
   describe('async', function () {
 
     it('should accept a callback function for `_bytes()`', function (done) {

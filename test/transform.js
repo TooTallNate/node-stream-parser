@@ -61,6 +61,31 @@ describe('Transform stream', function () {
     t.end(new Buffer([ 0, 1, 2, 3 ]));
   });
 
+  it('should allow you to pass through Infinity bytes', function (done) {
+    var t = new Transform();
+    Parser(t);
+    t._passthrough(Infinity);
+    var out = '';
+    t.setEncoding('ascii');
+    t.on('data', function (data) {
+      out += data;
+    });
+    t.on('end', function () {
+      assert.equal('hello world', out);
+      done();
+    });
+    t.end('hello world');
+  });
+
+  it('should *not* allow you to buffer Infinity bytes', function () {
+    // buffering to Infinity would just be silly...
+    var t = new Transform();
+    Parser(t);
+    assert.throws(function () {
+      t._bytes(Infinity);
+    });
+  });
+
   describe('async', function () {
 
     it('should accept a callback function for `_passthrough()`', function (done) {
