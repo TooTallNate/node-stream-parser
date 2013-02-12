@@ -65,13 +65,12 @@ describe('Transform stream', function () {
     var t = new Transform();
     Parser(t);
     t._passthrough(Infinity);
-    var out = '';
-    t.setEncoding('ascii');
+    var out = [];
     t.on('data', function (data) {
-      out += data;
+      out.push(data);
     });
     t.on('end', function () {
-      assert.equal('hello world', out);
+      assert.equal('hello world', Buffer.concat(out).toString());
       done();
     });
     t.end('hello world');
