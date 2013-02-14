@@ -64,6 +64,24 @@ parser.on('header', function (header) {
 process.stdin.pipe(parser).pipe(process.stdout);
 ```
 
+Here's an example of manually creating a `Transform` stream and turning it into a
+"pass through" stream equivalent to the one built into node core:
+
+``` javascript
+var Parser = require('stream-parser');
+var Transform = require('stream').Transform;
+
+// create a Transform instance and extend it with "stream-parser"
+var p = new Transform();
+Parser(p);
+
+// pass through `Infinity` bytes... forever...
+p._passthrough(Infinity);
+
+// now `p` is equivalent to a stream.PassThrough instance
+process.stdin.pipe(p).pipe(process.stdout);
+```
+
 See the `test` directory for some more example code in the test cases.
 
 A list of known concrete implementations is here (send pull requests for more!):
