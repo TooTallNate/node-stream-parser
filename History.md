@@ -1,3 +1,8 @@
+0.0.5 / 2012-03-06
+==================
+
+ - Update for node v0.9.12 streams2 API Writable/Transform API changes
+
 0.0.4 / 2012-02-23
 ==================
 
