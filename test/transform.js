@@ -85,6 +85,25 @@ describe('Transform stream', function () {
     });
   });
 
+  it('should not cause stack overflow', function() {
+    var t = new Transform();
+    Parser(t);
+
+    var bytes = 65536;
+    t._bytes(1, read);
+    function read() {
+      // Any downstream pipe consumer (writable) which doesn't do any async actions.
+      // e.g. console.log, or simply capturing data into an in-memory data-structure.
+      if (bytes-- > 0) {
+        t._bytes(1, read);
+      }
+    }
+
+    var b = new Buffer(bytes);
+    b.fill('h');
+    t.end(b);
+  });
+
   describe('async', function () {
 
     it('should accept a callback function for `_passthrough()`', function (done) {
