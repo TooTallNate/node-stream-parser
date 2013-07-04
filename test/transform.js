@@ -85,7 +85,7 @@ describe('Transform stream', function () {
     });
   });
 
-  it('should not cause stack overflow', function() {
+  it('should not cause stack overflow', function (done) {
     var t = new Transform();
     Parser(t);
 
@@ -94,8 +94,10 @@ describe('Transform stream', function () {
     function read() {
       // Any downstream pipe consumer (writable) which doesn't do any async actions.
       // e.g. console.log, or simply capturing data into an in-memory data-structure.
-      if (bytes-- > 0) {
+      if (--bytes) {
         t._bytes(1, read);
+      } else {
+        done();
       }
     }
 
