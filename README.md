@@ -88,6 +88,7 @@ A list of known concrete implementations is here (send pull requests for more!):
 
  * [node-icecast][]
  * [node-throttle][]
+ * [node-flv][]
  * [node-wav][]
 
 API
@@ -125,4 +126,5 @@ _passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
 
 [node-icecast]: https://github.com/TooTallNate/node-icecast
 [node-throttle]: https://github.com/TooTallNate/node-throttle
+[node-flv]: https://github.com/TooTallNate/node-flv
 [node-wav]: https://github.com/TooTallNate/node-wav
