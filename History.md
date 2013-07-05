@@ -1,3 +1,11 @@
+0.1.0 / 2013-06-04
+==================
+
+ - travis: test node v0.10
+ - test: add test case from #3
+ - parser: add jsdocs for the `process()` function
+ - parser: use a thunk-based "trampoline" technique to prevent stack overflows on synchronous parsers (fixes #3)
+
 0.0.5 / 2013-03-06
 ==================
 
