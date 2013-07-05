@@ -86,6 +86,10 @@ describe('Transform stream', function () {
   });
 
   it('should not cause stack overflow', function (done) {
+    // this one does an admirable amount of CPU work...
+    this.test.slow(500);
+    this.test.timeout(1000);
+
     var t = new Transform();
     Parser(t);
 
