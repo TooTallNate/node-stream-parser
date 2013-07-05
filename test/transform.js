@@ -142,6 +142,54 @@ describe('Transform stream', function () {
       t.resume();
     });
 
+    it('should work switching between async and sync callbacks', function (done) {
+      var firstCalled, secondCalled, thirdCalled;
+
+      // create a 6 byte Buffer. The first 4 will be the int
+      // `1337`. The last 2 will be whatever...
+      var val = 1337;
+      var buf = new Buffer(6);
+      buf.writeUInt32LE(val, 0);
+
+      var t = new Transform();
+      Parser(t);
+
+      // first read 4 bytes, with an async callback
+      function first (chunk, output, fn) {
+        firstCalled = true;
+        assert.equal(chunk.length, 4);
+        assert.equal(val, chunk.readUInt32LE(0));
+
+        t._bytes(1, second);
+        setTimeout(fn, 10);
+      }
+
+      // second read 1 byte, sync callback
+      function second (chunk) {
+        secondCalled = true;
+        assert.equal(chunk.length, 1);
+        t._bytes(1, third);
+      }
+
+      // third read 1 byte, async callback
+      function third (chunk, output, fn) {
+        thirdCalled = true;
+        assert.equal(chunk.length, 1);
+        setTimeout(fn, 10);
+      }
+
+      t.on('finish', function () {
+        assert(firstCalled);
+        assert(secondCalled);
+        assert(thirdCalled);
+        done();
+      });
+
+      t._bytes(4, first);
+      t.write(buf);
+      t.end();
+    });
+
   });
 
 });
