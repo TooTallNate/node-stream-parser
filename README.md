@@ -122,7 +122,8 @@ _passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
 ### ._passthrough(n, cb)
 
   Passes through `n` bytes to the readable side of this stream untouched,
-  then invokes `cb` once that amount has been passed through.
+  then invokes `cb` once that amount has been passed through. This function is only defined
+  when stream-parser is extending a `Transform` stream.
 
 [node-icecast]: https://github.com/TooTallNate/node-icecast
 [node-throttle]: https://github.com/TooTallNate/node-throttle
