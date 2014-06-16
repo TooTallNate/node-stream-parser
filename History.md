@@ -1,3 +1,12 @@
+
+0.1.1 / 2014-06-16
+==================
+
+ * package: pin "readable-stream" to v1.0
+ * package: update "debug" to v1.0.0
+ * travis: test node v0.11
+ * travis: don't test node v0.9
+
 0.1.0 / 2013-06-04
 ==================
 
