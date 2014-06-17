@@ -1,7 +1,7 @@
 node-stream-parser
 ==================
 ### Generic interruptible "parser" mixin for Transform & Writable streams
-[![Build Status](https://secure.travis-ci.org/TooTallNate/node-stream-parser.png)](http://travis-ci.org/TooTallNate/node-stream-parser)
+[![Build Status](https://secure.travis-ci.org/TooTallNate/node-stream-parser.svg)](http://travis-ci.org/TooTallNate/node-stream-parser)
 
 This module offers the `stream-parser` mixin, which provides an easy-to-use API
 for parsing bytes from `Writable` and/or `Transform` stream instances. This module
