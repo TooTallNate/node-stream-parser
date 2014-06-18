@@ -158,7 +158,9 @@ function transform (chunk, output, fn) {
  */
 
 function _data (stream, chunk, output, fn) {
-  assert(stream._parserBytesLeft > 0, 'got data but not currently parsing anything');
+  if (stream._parserBytesLeft <= 0) {
+    return fn(new Error('got data but not currently parsing anything'));
+  }
 
   if (chunk.length <= stream._parserBytesLeft) {
     // small buffer fits within the "_parserBytesLeft" window

@@ -143,6 +143,16 @@ describe('Writable streams', function () {
       w.end(data);
     });
 
+    it('should emit an "error" event when data is written with no parsing function', function (done) {
+      var w = new Writable();
+      Parser(w);
+      w.once('error', function (err) {
+        assert(err);
+        done();
+      });
+      w.write('a');
+    });
+
   });
 
   describe('FrameParser', function () {
@@ -177,7 +187,6 @@ describe('Writable streams', function () {
       p.write(new Buffer([ s.length ]));
       p.write(new Buffer(s));
       p.end();
-
     });
 
     it('should emit 2 "frame" events', function (done) {
