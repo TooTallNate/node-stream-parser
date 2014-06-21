@@ -1,4 +1,12 @@
 
+0.2.0 / 2014-06-21
+==================
+
+ * index: emit an "error" event when data is written with no parsing function is in place
+ * package: fix "main" field
+ * rename "lib/parser.js" to "index.js"
+ * README: use svg for Travis badge
+
 0.1.2 / 2014-06-16
 ==================
 
