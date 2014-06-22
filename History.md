@@ -1,4 +1,10 @@
 
+0.3.0 / 2014-06-22
+==================
+
+ * add a `_skipBytes()` function
+ * History: fix changelog output
+
 0.2.0 / 2014-06-21
 ==================
 
