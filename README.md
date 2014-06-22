@@ -96,6 +96,7 @@ API
 
   - [Parser()](#parser)
     - [._bytes(n, cb)](#_bytesn-cb)
+    - [._skipBytes(n, cb)](#_skipbytesn-cb)
     - [._passthrough(n, cb)](#_passthroughn-cb)
 
 ## Parser()
@@ -105,8 +106,8 @@ API
 
 ```js
 _bytes(n, cb) - buffers "n" bytes and then calls "cb" with the "chunk"
+_skipBytes(n, cb) - skips "n" bytes and then calls "cb" when done
 ```
-
 
   If you extend a `Transform` stream, then the `_passthrough()` function is also
   added:
@@ -118,6 +119,11 @@ _passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
 ### ._bytes(n, cb)
 
   Buffers `n` bytes and then invokes `cb` once that amount has been collected.
+
+### ._skipBytes(n, cb)
+
+  Skips over the next `n` bytes and then invokes `cb` once that amount has been
+  discarded.
 
 ### ._passthrough(n, cb)
 

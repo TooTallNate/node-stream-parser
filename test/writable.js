@@ -23,7 +23,13 @@ describe('Writable streams', function () {
     assert.equal('function', typeof w._bytes);
   });
 
-  it('should not have the `_passthrough()` function', function () {
+  it('should have the `_skipBytes()` function', function () {
+    var w = new Writable();
+    Parser(w);
+    assert.equal('function', typeof w._skipBytes);
+  });
+
+  it('should *not* have the `_passthrough()` function', function () {
     var w = new Writable();
     Parser(w);
     assert.notEqual('function', typeof w._passthrough);
@@ -126,6 +132,22 @@ describe('Writable streams', function () {
     assert.throws(function () {
       w._bytes(Infinity);
     });
+  });
+
+  it('should skip 3 bytes then buffer 3 bytes', function (done) {
+    var w = new Writable();
+    Parser(w);
+
+    w._skipBytes(3, function () {
+      assert.equal(arguments.length, 0);
+      w._bytes(3, function (data) {
+        assert.equal(arguments.length, 1);
+        assert.equal(data.toString('ascii'), 'lo\n');
+        done();
+      });
+    });
+
+    w.end('hello\n');
   });
 
   describe('async', function () {

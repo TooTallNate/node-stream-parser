@@ -13,10 +13,20 @@ var debug = require('debug')('stream-parser');
 module.exports = Parser;
 
 /**
+ * Parser states.
+ */
+
+var INIT        = -1;
+var BUFFERING   = 0;
+var SKIPPING    = 1;
+var PASSTHROUGH = 2;
+
+/**
  * The `Parser` stream mixin works with either `Writable` or `Transform` stream
  * instances/subclasses. Provides a convenient generic "parsing" API:
  *
  *   _bytes(n, cb) - buffers "n" bytes and then calls "cb" with the "chunk"
+ *   _skipBytes(n, cb) - skips "n" bytes and then calls "cb" when done
  *
  * If you extend a `Transform` stream, then the `_passthrough()` function is also
  * added:
@@ -34,8 +44,9 @@ function Parser (stream) {
   if (!isTransform && !isWritable) throw new Error('must pass a Writable or Transform stream in');
   debug('extending Parser into stream');
 
-  // both Transform streams and Writable streams get `_bytes()`
+  // Transform streams and Writable streams get `_bytes()` and `_skipBytes()`
   stream._bytes = _bytes;
+  stream._skipBytes = _skipBytes;
 
   // only Transform streams get the `_passthrough()` function
   if (isTransform) stream._passthrough = _passthrough;
@@ -60,8 +71,8 @@ function init (stream) {
   // number of bytes parsed so far for the next "chunk"
   stream._parserBuffered = 0;
 
-  // flag the keeps track of if we're buffering or passing-through
-  stream._parserBuffering = false;
+  // flag that keeps track of if what the parser should do with bytes received
+  stream._parserState = INIT;
 
   // the callback for the next "chunk"
   stream._parserCallback = null;
@@ -89,7 +100,26 @@ function _bytes (n, fn) {
   debug('buffering %o bytes', n);
   this._parserBytesLeft = n;
   this._parserCallback = fn;
-  this._parserBuffering = true;
+  this._parserState = BUFFERING;
+}
+
+/**
+ * Skips over the next `n` bytes, then invokes `fn` once that amount has
+ * been discarded.
+ *
+ * @param {Number} n the number of bytes to discard
+ * @param {Function} fn callback function to invoke when `n` bytes have been skipped
+ * @api public
+ */
+
+function _skipBytes (n, fn) {
+  assert(!this._parserCallback, 'there is already a "callback" set!');
+  assert(n > 0, 'can only skip > 0 bytes, got "' + n + '"');
+  if (!this._parserInit) init(this);
+  debug('skipping %o bytes', n);
+  this._parserBytesLeft = n;
+  this._parserCallback = fn;
+  this._parserState = SKIPPING;
 }
 
 /**
@@ -108,7 +138,7 @@ function _passthrough (n, fn) {
   debug('passing through %o bytes', n);
   this._parserBytesLeft = n;
   this._parserCallback = fn;
-  this._parserBuffering = false;
+  this._parserState = PASSTHROUGH;
 }
 
 /**
@@ -196,27 +226,28 @@ function process (stream, chunk, output, fn) {
   stream._parserBytesLeft -= chunk.length;
   debug('%o bytes left for stream piece', stream._parserBytesLeft);
 
-  if (stream._parserBuffering) {
+  if (stream._parserState === BUFFERING) {
     // buffer
     stream._parserBuffers.push(chunk);
     stream._parserBuffered += chunk.length;
-  } else {
+  } else if (stream._parserState === PASSTHROUGH) {
     // passthrough
     output(chunk);
   }
+  // don't need to do anything for the SKIPPING case
 
   if (0 === stream._parserBytesLeft) {
     // done with stream "piece", invoke the callback
     var cb = stream._parserCallback;
-    if (cb && stream._parserBuffering && stream._parserBuffers.length > 1) {
+    if (cb && stream._parserState === BUFFERING && stream._parserBuffers.length > 1) {
       chunk = Buffer.concat(stream._parserBuffers, stream._parserBuffered);
     }
-    if (!stream._parserBuffering) {
+    if (stream._parserState !== BUFFERING) {
       chunk = null;
     }
     stream._parserCallback = null;
     stream._parserBuffered = 0;
-    stream._parserBuffering = true;
+    stream._parserState = INIT;
     stream._parserBuffers.splice(0); // empty
 
     if (cb) {
