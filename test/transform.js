@@ -39,14 +39,16 @@ describe('Transform stream', function () {
 
     // read 2 bytes
     t._bytes(2, read);
-    function read (chunk, output) {
+    function read (err, chunk, output) {
+      assert(!err);
       assert.equal(2, chunk.length);
       assert.equal(0, chunk[0]);
       assert.equal(1, chunk[1]);
       gotBytes = true;
       t._passthrough(2, passthrough);
     }
-    function passthrough (output) {
+    function passthrough (err, output) {
+      assert(!err);
       gotPassthrough = true;
     }
 
@@ -122,8 +124,9 @@ describe('Transform stream', function () {
       var t = new Transform();
       var data = 'test', _data;
       Parser(t);
-      t._passthrough(data.length, function (output, fn) {
-        setTimeout(fn, 25);
+      t._passthrough(data.length, function (err) {
+        assert(!err);
+        setTimeout(t._doneParsing.bind(t), 25);
       });
 
       t.on('data', function (data) {
@@ -141,8 +144,9 @@ describe('Transform stream', function () {
       var t = new Transform();
       var data = 'test';
       Parser(t);
-      t._bytes(data.length, function (chunk, output, fn) {
-        setTimeout(fn, 25);
+      t._bytes(data.length, function (err, chunk, output) {
+        assert(!err);
+        setTimeout(t._doneParsing.bind(t), 25);
       });
 
       t.on('end', function () {
@@ -165,27 +169,25 @@ describe('Transform stream', function () {
       Parser(t);
 
       // first read 4 bytes, with an async callback
-      function first (chunk, output, fn) {
+      function first (err, chunk, output) {
         firstCalled = true;
         assert.equal(chunk.length, 4);
         assert.equal(val, chunk.readUInt32LE(0));
 
         t._bytes(1, second);
-        setTimeout(fn, 10);
       }
 
       // second read 1 byte, sync callback
-      function second (chunk) {
+      function second (err, chunk) {
         secondCalled = true;
         assert.equal(chunk.length, 1);
         t._bytes(1, third);
       }
 
       // third read 1 byte, async callback
-      function third (chunk, output, fn) {
+      function third (err, chunk, output) {
         thirdCalled = true;
         assert.equal(chunk.length, 1);
-        setTimeout(fn, 10);
       }
 
       t.on('finish', function () {

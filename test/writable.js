@@ -40,7 +40,8 @@ describe('Writable streams', function () {
     Parser(w);
 
     // read 4 bytes
-    w._bytes(4, function (chunk) {
+    w._bytes(4, function (err, chunk) {
+      assert(!err);
       assert.equal(chunk.length, buf.length);
       assert.equal(val, chunk.readUInt32LE(0));
       done();
@@ -54,7 +55,8 @@ describe('Writable streams', function () {
     Parser(w);
 
     // read 4 bytes
-    w._bytes(4, function (chunk) {
+    w._bytes(4, function (err, chunk) {
+      assert(!err);
       assert.equal(chunk.length, buf.length);
       assert.equal(val, chunk.readUInt32LE(0));
       done();
@@ -72,18 +74,21 @@ describe('Writable streams', function () {
 
     // read 1 byte
     w._bytes(1, readone);
-    function readone (chunk) {
+    function readone (err, chunk) {
+      assert(!err);
       assert.equal(1, chunk.length);
       assert.equal(0, chunk[0]);
       w._bytes(2, readtwo);
     }
-    function readtwo (chunk) {
+    function readtwo (err, chunk) {
+      assert(!err);
       assert.equal(2, chunk.length);
       assert.equal(0, chunk[0]);
       assert.equal(1, chunk[1]);
       w._bytes(3, readthree);
     }
-    function readthree (chunk) {
+    function readthree (err, chunk) {
+      assert(!err);
       assert.equal(3, chunk.length);
       assert.equal(0, chunk[0]);
       assert.equal(1, chunk[1]);
@@ -105,7 +110,8 @@ describe('Writable streams', function () {
     Parser(MyWritable.prototype);
 
     var count = 2;
-    MyWritable.prototype.onbytes = function (buf) {
+    MyWritable.prototype.onbytes = function (err, buf) {
+      assert(!err);
       assert.equal(2, buf.length);
       assert.equal(0, buf[0]);
       assert.equal(1, buf[1]);
@@ -138,10 +144,11 @@ describe('Writable streams', function () {
     var w = new Writable();
     Parser(w);
 
-    w._skipBytes(3, function () {
-      assert.equal(arguments.length, 0);
-      w._bytes(3, function (data) {
-        assert.equal(arguments.length, 1);
+    w._skipBytes(3, function (err) {
+      assert(!err);
+      w._bytes(3, function (err, data) {
+        assert(!err);
+        assert.equal(arguments.length, 2);
         assert.equal(data.toString('ascii'), 'lo\n');
         done();
       });
@@ -156,8 +163,7 @@ describe('Writable streams', function () {
       var w = new Writable();
       var data = 'test';
       Parser(w);
-      w._bytes(data.length, function (chunk, fn) {
-        setTimeout(fn, 25);
+      w._bytes(data.length, function (err, chunk) {
       });
       w.on('finish', function () {
         done();
@@ -165,14 +171,14 @@ describe('Writable streams', function () {
       w.end(data);
     });
 
-    it('should emit an "error" event when data is written with no parsing function', function (done) {
+    it('should emit an "error" event when writable is ended with no parsing function', function (done) {
       var w = new Writable();
       Parser(w);
       w.once('error', function (err) {
         assert(err);
         done();
       });
-      w.write('a');
+      w.end('a');
     });
 
   });
@@ -187,12 +193,12 @@ describe('Writable streams', function () {
     // mixin to the `prototype`
     Parser(FrameParser.prototype);
 
-    FrameParser.prototype.onsize = function (buf) {
+    FrameParser.prototype.onsize = function (err, buf) {
       var size = buf.readUInt8(0);
       this._bytes(size, this.onframe);
     };
 
-    FrameParser.prototype.onframe = function (buf) {
+    FrameParser.prototype.onframe = function (err, buf) {
       this.emit('frame', buf.toString());
 
       // begin parsing the next "frame"

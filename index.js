@@ -4,6 +4,8 @@
  */
 
 var assert = require('assert');
+var Promise = require('promise');
+var callbackify = require('callbackify');
 var debug = require('debug')('stream-parser');
 
 /**
@@ -16,10 +18,10 @@ module.exports = Parser;
  * Parser states.
  */
 
-var INIT        = -1;
 var BUFFERING   = 0;
 var SKIPPING    = 1;
 var PASSTHROUGH = 2;
+var FINISHED    = -1;
 
 /**
  * The `Parser` stream mixin works with either `Writable` or `Transform` stream
@@ -33,8 +35,8 @@ var PASSTHROUGH = 2;
  *
  *   _passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
  *
- * @param {Stream} stream Transform or Writable stream instance to extend
- * @api public
+ * @param {Stream} stream - Transform or Writable stream instance to extend
+ * @public
  */
 
 function Parser (stream) {
@@ -44,12 +46,13 @@ function Parser (stream) {
   if (!isTransform && !isWritable) throw new Error('must pass a Writable or Transform stream in');
   debug('extending Parser into stream');
 
-  // Transform streams and Writable streams get `_bytes()` and `_skipBytes()`
-  stream._bytes = _bytes;
-  stream._skipBytes = _skipBytes;
+  // common functions fofr Transform streams and Writable streams
+  stream._bytes = callbackify(_bytes);
+  stream._skipBytes = callbackify(_skipBytes);
+  stream._doneParsing = callbackify(_doneParsing);
 
   // only Transform streams get the `_passthrough()` function
-  if (isTransform) stream._passthrough = _passthrough;
+  if (isTransform) stream._passthrough = callbackify(_passthrough);
 
   // take control of the streams2 callback functions for this stream
   if (isTransform) {
@@ -59,11 +62,18 @@ function Parser (stream) {
   }
 }
 
+/**
+ * Invoked upon the first "read" call.
+ *
+ * @param {Stream} stream - Transform or Writable stream instance to init
+ * @private
+ */
+
 function init (stream) {
   debug('initializing parser stream');
 
-  // number of bytes left to parser for the next "chunk"
-  stream._parserBytesLeft = 0;
+  // set to `true` once `_doneParsing()` is called
+  stream._parserFinished = false;
 
   // array of Buffer instances that make up the next "chunk"
   stream._parserBuffers = [];
@@ -71,11 +81,8 @@ function init (stream) {
   // number of bytes parsed so far for the next "chunk"
   stream._parserBuffered = 0;
 
-  // flag that keeps track of if what the parser should do with bytes received
-  stream._parserState = INIT;
-
-  // the callback for the next "chunk"
-  stream._parserCallback = null;
+  // array of "read" request Promise instances that need to be fulfilled
+  stream._parserPromises = [];
 
   // XXX: backwards compat with the old Transform API... remove at some point..
   if ('function' == typeof stream.push) {
@@ -85,131 +92,218 @@ function init (stream) {
   stream._parserInit = true;
 }
 
-/**
- * Buffers `n` bytes and then invokes `fn` once that amount has been collected.
- *
- * @param {Number} n the number of bytes to buffer
- * @param {Function} fn callback function to invoke when `n` bytes are buffered
- * @api public
- */
 
-function _bytes (n, fn) {
-  assert(!this._parserCallback, 'there is already a "callback" set!');
-  assert(isFinite(n) && n > 0, 'can only buffer a finite number of bytes > 0, got "' + n + '"');
-  if (!this._parserInit) init(this);
-  debug('buffering %o bytes', n);
-  this._parserBytesLeft = n;
-  this._parserCallback = fn;
-  this._parserState = BUFFERING;
+function createPromise (bytes, state) {
+  var reject, resolve, promise;
+  promise = new Promise(function (_resolve, _reject) {
+    // save these for later...
+    resolve = _resolve;
+    reject = _reject;
+  });
+  assert.equal('function', typeof resolve);
+  assert.equal('function', typeof reject);
+  promise.bytesLeft = bytes;
+  promise.state = state;
+  promise.reject = reject;
+  promise.resolve = resolve;
+  return promise;
 }
 
 /**
- * Skips over the next `n` bytes, then invokes `fn` once that amount has
- * been discarded.
+ * Buffers `n` bytes and then fulfills the returned Promise once that amount
+ * has been collected.
  *
- * @param {Number} n the number of bytes to discard
- * @param {Function} fn callback function to invoke when `n` bytes have been skipped
- * @api public
+ * @param {Number} n - the number of bytes to buffer
+ * @return {Promise} promise
+ * @public
  */
 
-function _skipBytes (n, fn) {
-  assert(!this._parserCallback, 'there is already a "callback" set!');
+function _bytes (n) {
+  assert(isFinite(n) && n > 0, 'can only buffer a finite number of bytes > 0, got "' + n + '"');
+  if (!this._parserInit) init(this);
+  debug('buffering %o bytes', n);
+  var promise = createPromise(n, BUFFERING);
+  this._parserPromises.push(promise);
+
+  if (this._bufferedWrite) {
+    debug('flushing buffered write() call');
+    var args = this._bufferedWrite;
+    this._bufferedWrite = null;
+    data.apply(null, args);
+  }
+
+  return promise;
+}
+
+/**
+ * Skips over the next `n` bytes, then fulfills the returned Promise once that
+ * amount has been discarded.
+ *
+ * @param {Number} n - the number of bytes to discard
+ * @return {Promise} promise
+ * @public
+ */
+
+function _skipBytes (n) {
   assert(n > 0, 'can only skip > 0 bytes, got "' + n + '"');
   if (!this._parserInit) init(this);
   debug('skipping %o bytes', n);
-  this._parserBytesLeft = n;
-  this._parserCallback = fn;
-  this._parserState = SKIPPING;
+  var promise = createPromise(n, SKIPPING);
+  this._parserPromises.push(promise);
+
+  if (this._bufferedWrite) {
+    debug('flushing buffered write() call');
+    var args = this._bufferedWrite;
+    this._bufferedWrite = null;
+    data.apply(null, args);
+  }
+
+  return promise;
 }
 
 /**
  * Passes through `n` bytes to the readable side of this stream untouched,
- * then invokes `fn` once that amount has been passed through.
+ * then fulfills the returned Promise once that amount has been passed through.
  *
- * @param {Number} n the number of bytes to pass through
- * @param {Function} fn callback function to invoke when `n` bytes have passed through
- * @api public
+ * @param {Number} n - the number of bytes to pass through
+ * @return {Promise} promise
+ * @public
  */
 
-function _passthrough (n, fn) {
-  assert(!this._parserCallback, 'There is already a "callback" set!');
+function _passthrough (n) {
   assert(n > 0, 'can only pass through > 0 bytes, got "' + n + '"');
   if (!this._parserInit) init(this);
   debug('passing through %o bytes', n);
-  this._parserBytesLeft = n;
-  this._parserCallback = fn;
-  this._parserState = PASSTHROUGH;
+  var promise = createPromise(n, PASSTHROUGH);
+  this._parserPromises.push(promise);
+
+  if (this._bufferedWrite) {
+    debug('flushing buffered write() call');
+    var args = this._bufferedWrite;
+    this._bufferedWrite = null;
+    data.apply(null, args);
+  }
+
+  return promise;
+}
+
+/**
+ * Notifies the parser that we are no longer interested in parsing
+ * anymore data. Any further recieved bytes will be dropped on the floor.
+ *
+ * This also allows the "end"/"finish" events to be emitted.
+ *
+ * @return {Promise} promise
+ * @public
+ */
+
+function _doneParsing () {
+  if (!this._parserInit) init(this);
+  debug('done parsing');
+
+  var promise = createPromise(null, FINISHED);
+  this._parserPromises.push(promise);
+
+  if (this._bufferedWrite) {
+    debug('flushing buffered write() call');
+    var args = this._bufferedWrite;
+    this._bufferedWrite = null;
+    data.apply(null, args);
+  }
+
+  return promise;
 }
 
 /**
  * The `_write()` callback function implementation.
  *
- * @api private
+ * @private
  */
 
 function write (chunk, encoding, fn) {
-  if (!this._parserInit) init(this);
+  var stream = this;
+  if (!stream._parserInit) init(stream);
   debug('write(%o bytes)', chunk.length);
 
   // XXX: old Writable stream API compat... remove at some point...
   if ('function' == typeof encoding) fn = encoding;
 
-  data(this, chunk, null, fn);
+  new Promise(function (resolve, reject) {
+    data(stream, chunk, null, resolve, reject);
+  }).nodeify(fn);
 }
 
 /**
  * The `_transform()` callback function implementation.
  *
- * @api private
+ * @private
  */
 
 
 function transform (chunk, output, fn) {
-  if (!this._parserInit) init(this);
+  var stream = this;
+  if (!stream._parserInit) init(stream);
   debug('transform(%o bytes)', chunk.length);
 
   // XXX: old Transform stream API compat... remove at some point...
   if ('function' != typeof output) {
-    output = this._parserOutput;
+    output = stream._parserOutput;
   }
 
-  data(this, chunk, output, fn);
+  new Promise(function (resolve, reject) {
+    data(stream, chunk, output, resolve, reject);
+  }).nodeify(fn);
 }
 
 /**
  * The internal buffering/passthrough logic...
  *
- * This `_data` function get's "trampolined" to prevent stack overflows for tight
- * loops. This technique requires us to return a "thunk" function for any
- * synchronous action. Async stuff breaks the trampoline, but that's ok since it's
- * working with a new stack at that point anyway.
- *
- * @api private
+ * @private
  */
 
-function _data (stream, chunk, output, fn) {
-  if (stream._parserBytesLeft <= 0) {
-    return fn(new Error('got data but not currently parsing anything'));
+function data (stream, chunk, output, resolve, reject) {
+  debug('data(%o bytes)', chunk.length);
+
+  if (stream._parserFinished) {
+    debug('already finished... dropping %o bytes on floor', chunk.length);
+    resolve();
+    return;
   }
 
-  if (chunk.length <= stream._parserBytesLeft) {
-    // small buffer fits within the "_parserBytesLeft" window
-    return function () {
-      return process(stream, chunk, output, fn);
-    };
+  var promise = stream._parserPromises[0];
+
+  if (promise) {
+    if (promise.state === FINISHED) {
+      // no more bytes!!!
+      debug('stream is FINISHED!!!! (dropping %o bytes on floor)', chunk.length);
+      stream._parserFinished = true;
+      stream._parserPromises.shift();
+      promise.resolve();
+      resolve();
+      return;
+    }
   } else {
-    // large buffer needs to be sliced on "_parserBytesLeft" and processed
-    return function () {
-      var b = chunk.slice(0, stream._parserBytesLeft);
-      return process(stream, b, output, function (err) {
-        if (err) return fn(err);
-        if (chunk.length > b.length) {
-          return function () {
-            return _data(stream, chunk.slice(b.length), output, fn);
-          };
-        }
-      });
-    };
+    debug('waiting for next "read" style call');
+    stream._bufferedWrite = arguments;
+    return;
+  }
+
+  if (chunk.length <= promise.bytesLeft) {
+    // small buffer fits within the "bytesLeft" window
+    debug('small buffer');
+    process(stream, chunk, output);
+    resolve();
+  } else {
+    // large buffer needs to be sliced on "bytesLeft" and processed
+    var b = chunk.slice(0, promise.bytesLeft);
+    debug('sliced chunk from %o to %o bytes', chunk.length, b.length);
+
+    process(stream, b, output);
+
+    // if there's anything leftover, then do the `data` dance again
+    if (chunk.length > b.length) {
+      data(stream, chunk.slice(b.length), output, resolve, reject);
+    }
   }
 }
 
@@ -219,81 +313,49 @@ function _data (stream, chunk, output, fn) {
  * bytes when buffering, passing through the bytes when doing that, and invoking
  * the user callback when the number of bytes has been reached.
  *
- * @api private
+ * @private
  */
 
-function process (stream, chunk, output, fn) {
-  stream._parserBytesLeft -= chunk.length;
-  debug('%o bytes left for stream piece', stream._parserBytesLeft);
+function process (stream, chunk, output) {
+  var promise = stream._parserPromises[0];
 
-  if (stream._parserState === BUFFERING) {
+  promise.bytesLeft -= chunk.length;
+  debug('%o bytes left for stream piece', promise.bytesLeft);
+
+  if (promise.state === BUFFERING) {
     // buffer
     stream._parserBuffers.push(chunk);
     stream._parserBuffered += chunk.length;
-  } else if (stream._parserState === PASSTHROUGH) {
+  } else if (promise.state === PASSTHROUGH) {
     // passthrough
     output(chunk);
   }
   // don't need to do anything for the SKIPPING case
 
-  if (0 === stream._parserBytesLeft) {
+  if (0 === promise.bytesLeft) {
     // done with stream "piece", invoke the callback
-    var cb = stream._parserCallback;
-    if (cb && stream._parserState === BUFFERING && stream._parserBuffers.length > 1) {
+    if (promise.state === BUFFERING && stream._parserBuffers.length > 1) {
       chunk = Buffer.concat(stream._parserBuffers, stream._parserBuffered);
     }
-    if (stream._parserState !== BUFFERING) {
+
+    if (promise.state !== BUFFERING) {
       chunk = null;
     }
-    stream._parserCallback = null;
+
+    // reset parser state on the stream and remove leading Promise instance
+    stream._parserPromises.shift();
     stream._parserBuffered = 0;
-    stream._parserState = INIT;
     stream._parserBuffers.splice(0); // empty
 
-    if (cb) {
-      var args = [];
-      if (chunk) {
-        // buffered
-        args.push(chunk);
-      } else {
-        // passthrough
-      }
-      if (output) {
-        // on a Transform stream, has "output" function
-        args.push(output);
-      }
-      var async = cb.length > args.length;
-      if (async) {
-        args.push(trampoline(fn));
-      }
-      // invoke cb
-      var rtn = cb.apply(stream, args);
-      if (!async || fn === rtn) return fn;
+    if (output) {
+      // on a Transform stream, has "output" function, skipped
+      promise.output = output;
     }
+
+    // resolve promise
+    //console.log(promise);
+    promise.resolve(chunk);
   } else {
-    // need more bytes
-    return fn;
+    debug('need %o more bytes', promise.bytesLeft)
   }
-}
-
-var data = trampoline(_data);
-
-/**
- * Generic thunk-based "trampoline" helper function.
- *
- * @param {Function} input function
- * @return {Function} "trampolined" function
- * @api private
- */
-
-function trampoline (fn) {
-  return function () {
-    var result = fn.apply(this, arguments);
-
-    while ('function' == typeof result) {
-      result = result();
-    }
-
-    return result;
-  };
 }
