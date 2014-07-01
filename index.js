@@ -5,7 +5,7 @@
 
 var assert = require('assert');
 var Promise = require('promise');
-var callbackify = require('callbackify');
+var callbackify = Promise.nodeify;
 var debug = require('debug')('stream-parser');
 
 /**

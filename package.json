@@ -13,9 +13,8 @@
   "author": "Nathan Rajlich <nathan@tootallnate.net> (http://tootallnate.net)",
   "license": "MIT",
   "dependencies": {
-    "callbackify": "~0.1.2",
     "debug": "~1.0.0",
-    "promise": "~5.0.0"
+    "promise": "https://github.com/then/promise/archive/57ae713cd06e074311058ec9d0254c675e08a65b.tar.gz"
   },
   "devDependencies": {
     "mocha": "*",
