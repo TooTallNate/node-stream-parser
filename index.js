@@ -89,7 +89,26 @@ function init (stream) {
     stream._parserOutput = stream.push.bind(stream);
   }
 
+  stream.once('finish', onfinish);
+
   stream._parserInit = true;
+}
+
+function onfinish () {
+  var stream = this;
+  debug('%s stream "finish" event', stream.constructor.name);
+
+  var promise = stream._parserPromises[0];
+  if (promise) {
+    // if we've started receiving bytes for this next "step", then reject
+    // the promise since the stream "finished" before the request was fulfulled
+    var failed = promise.bytesNeeded != promise.bytesLeft;
+    if (failed) {
+      // create EOFError class?
+      var err = new Error('stream "finished" with ' + promise.bytesLeft + ' bytes left to parse');
+      promise.reject(err);
+    }
+  }
 }
 
 
@@ -102,6 +121,7 @@ function createPromise (bytes, state) {
   });
   assert.equal('function', typeof resolve);
   assert.equal('function', typeof reject);
+  promise.bytesNeeded = bytes;
   promise.bytesLeft = bytes;
   promise.state = state;
   promise.reject = reject;
