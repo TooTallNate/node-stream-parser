@@ -1,6 +1,6 @@
 {
   "name": "stream-parser",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Generic interruptible \"parser\" mixin for Transform & Writable streams",
   "main": "index.js",
   "scripts": {
