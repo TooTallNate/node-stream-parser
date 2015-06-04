@@ -13,7 +13,7 @@
   "author": "Nathan Rajlich <nathan@tootallnate.net> (http://tootallnate.net)",
   "license": "MIT",
   "dependencies": {
-    "debug": "~1.0.0"
+    "debug": "2"
   },
   "devDependencies": {
     "mocha": "*",
