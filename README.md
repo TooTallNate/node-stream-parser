@@ -86,7 +86,7 @@ See the `test` directory for some more example code in the test cases.
 
 A list of known concrete implementations is here (send pull requests for more!):
 
- * [node-icecast][]
+ * [node-icy][]
  * [node-throttle][]
  * [node-flv][]
  * [node-wav][]
@@ -131,7 +131,7 @@ _passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
   then invokes `cb` once that amount has been passed through. This function is only defined
   when stream-parser is extending a `Transform` stream.
 
-[node-icecast]: https://github.com/TooTallNate/node-icecast
+[node-icy]: https://github.com/TooTallNate/node-icy
 [node-throttle]: https://github.com/TooTallNate/node-throttle
 [node-flv]: https://github.com/TooTallNate/node-flv
 [node-wav]: https://github.com/TooTallNate/node-wav
