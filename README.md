@@ -90,6 +90,7 @@ A list of known concrete implementations is here (send pull requests for more!):
  * [node-throttle][]
  * [node-flv][]
  * [node-wav][]
+ * [node-webpinfo][]
 
 API
 ---
@@ -135,3 +136,4 @@ _passthrough(n, cb) - passes through "n" bytes untouched and then calls "cb"
 [node-throttle]: https://github.com/TooTallNate/node-throttle
 [node-flv]: https://github.com/TooTallNate/node-flv
 [node-wav]: https://github.com/TooTallNate/node-wav
+[node-webpinfo]: https://github.com/mooyoul/node-webpinfo
